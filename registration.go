@@ -3,6 +3,7 @@ package registration
 import (
 	"context"
 	"strings"
+	"sync"
 )
 
 // Features holds the features a provider supports
@@ -34,14 +35,40 @@ func NewRegistry() Registry {
 }
 
 // Register will add a provider with details to the main registryCollection
-func (rc *Registry) Register(provider, protocol string, driverInterface interface{}, compatFn Verifier, features Features) {
+func (rc *Registry) Register(name, protocol string, driverInterface interface{}, compatFn Verifier, features Features) {
 	*rc = append(*rc, &Driver{
-		Name:            provider,
+		Name:            name,
 		Protocol:        protocol,
 		Features:        features,
 		Verifier:        compatFn,
 		DriverInterface: driverInterface,
 	})
+}
+
+// GetDriverInterfaces returns a slice of just the driver interfaces
+func (rc Registry) GetDriverInterfaces() []interface{} {
+	results := make([]interface{}, 0)
+	for _, elem := range rc {
+		results = append(results, elem.DriverInterface)
+	}
+	return results
+}
+
+// FilterForCompatible updates the registry with only compatible implementations
+func (rc *Registry) FilterForCompatible(ctx context.Context) {
+	var wg sync.WaitGroup
+	result := make(Registry, 0)
+	for _, elem := range *rc {
+		wg.Add(1)
+		go func(isCompat Verifier, reg *Driver, wg *sync.WaitGroup) {
+			if isCompat.Compatible(ctx) {
+				result = append(result, reg)
+			}
+			wg.Done()
+		}(elem.Verifier, elem, &wg)
+	}
+	wg.Wait()
+	*rc = result
 }
 
 // Include does the actual work of filtering for specific features

@@ -1,6 +1,7 @@
 package registration
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -13,6 +14,17 @@ const (
 	FeaturePowerSet   Feature = "powerset"
 	FeatureUserCreate Feature = "usercreate"
 )
+
+type driverOne struct {
+	name         string
+	protocol     string
+	features     Features
+	isCompatible bool
+}
+
+func (do *driverOne) Compatible(ctx context.Context) bool {
+	return do.isCompatible
+}
 
 func TestInclude(t *testing.T) {
 	testCases := []struct {
@@ -367,6 +379,42 @@ func TestPrefer(t *testing.T) {
 			registries := unorderedCollection
 			result := registries.PreferProtocol(tc.protocol...)
 			if diff := cmp.Diff(tc.want, result); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}
+
+func TestGetDriverInterfaces(t *testing.T) {
+	rg := NewRegistry()
+	do := &driverOne{}
+	rg.Register(do.name, do.protocol, do, do, do.features)
+	driverInterfaces := rg.GetDriverInterfaces()
+	if diff := cmp.Diff(driverInterfaces, []interface{}{do}, cmp.AllowUnexported(driverOne{})); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestFilterForCompatible(t *testing.T) {
+	compatible := &driverOne{name: "driverOne", protocol: "tcp", features: Features{}, isCompatible: true}
+	notCompatible := &driverOne{name: "driverOne", protocol: "tcp", features: Features{}, isCompatible: false}
+	testCases := []struct {
+		name   string
+		driver *driverOne
+		want   []interface{}
+	}{
+		{name: "is compatible", driver: compatible, want: []interface{}{compatible}},
+		{name: "is NOT compatible", driver: notCompatible, want: []interface{}{}},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			rg := NewRegistry()
+			rg.Register(tc.driver.name, tc.driver.protocol, tc.driver, tc.driver, tc.driver.features)
+			rg.FilterForCompatible(context.Background())
+			driverInterfaces := rg.GetDriverInterfaces()
+			if diff := cmp.Diff(driverInterfaces, tc.want, cmp.AllowUnexported(driverOne{})); diff != "" {
 				t.Fatal(diff)
 			}
 		})
