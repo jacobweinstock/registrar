@@ -1,4 +1,4 @@
-module github.com/jacobweinstock/registration
+module github.com/jacobweinstock/registry
 
 go 1.15
 
