@@ -8,9 +8,6 @@ import (
 )
 
 const (
-	// FeaturePowerState represents the powerstate functionality
-	// an implementation will use these when they have implemented
-	// corresponding interface method.
 	FeaturePowerSet   Feature = "powerset"
 	FeatureUserCreate Feature = "usercreate"
 )
@@ -209,11 +206,9 @@ func TestAll(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			// register
 			rg := NewRegistry()
 			if tc.addARegistry {
 				rg.Register("dell", "web", nil, nil, []Feature{FeaturePowerSet})
-				t.Log(rg)
 			}
 			if diff := cmp.Diff(tc.want, rg); diff != "" {
 				t.Fatal(diff)
@@ -239,7 +234,6 @@ func TestSupportFn(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			// register
 			rg := NewRegistry()
 			if tc.addARegistry {
 				rg.Register("dell", "web", nil, nil, []Feature{FeatureUserCreate})
@@ -269,7 +263,6 @@ func TestUsingFn(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			// register
 			rg := NewRegistry()
 			if tc.addARegistry {
 				rg.Register("dell", "web", nil, nil, []Feature{FeatureUserCreate})
@@ -299,7 +292,6 @@ func TestForFn(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			// register
 			rg := NewRegistry()
 			if tc.addARegistry {
 				rg.Register("dell", "web", nil, nil, []Feature{FeatureUserCreate})
@@ -375,7 +367,6 @@ func TestPrefer(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			// register
 			registries := unorderedCollection
 			result := registries.PreferProtocol(tc.protocol...)
 			if diff := cmp.Diff(tc.want, result); diff != "" {

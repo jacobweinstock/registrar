@@ -35,8 +35,8 @@ func NewRegistry() Registry {
 }
 
 // Register will add a provider with details to the main registryCollection
-func (rc *Registry) Register(name, protocol string, driverInterface interface{}, compatFn Verifier, features Features) {
-	*rc = append(*rc, &Driver{
+func (r *Registry) Register(name, protocol string, driverInterface interface{}, compatFn Verifier, features Features) {
+	*r = append(*r, &Driver{
 		Name:            name,
 		Protocol:        protocol,
 		Features:        features,
@@ -46,19 +46,19 @@ func (rc *Registry) Register(name, protocol string, driverInterface interface{},
 }
 
 // GetDriverInterfaces returns a slice of just the driver interfaces
-func (rc Registry) GetDriverInterfaces() []interface{} {
+func (r Registry) GetDriverInterfaces() []interface{} {
 	results := make([]interface{}, 0)
-	for _, elem := range rc {
+	for _, elem := range r {
 		results = append(results, elem.DriverInterface)
 	}
 	return results
 }
 
 // FilterForCompatible updates the registry with only compatible implementations
-func (rc *Registry) FilterForCompatible(ctx context.Context) {
+func (r *Registry) FilterForCompatible(ctx context.Context) {
 	var wg sync.WaitGroup
 	result := make(Registry, 0)
-	for _, elem := range *rc {
+	for _, elem := range *r {
 		wg.Add(1)
 		go func(isCompat Verifier, reg *Driver, wg *sync.WaitGroup) {
 			if isCompat.Compatible(ctx) {
@@ -68,16 +68,16 @@ func (rc *Registry) FilterForCompatible(ctx context.Context) {
 		}(elem.Verifier, elem, &wg)
 	}
 	wg.Wait()
-	*rc = result
+	*r = result
 }
 
 // Include does the actual work of filtering for specific features
-func (rf Features) Include(features ...Feature) bool {
-	if len(features) > len(rf) {
+func (f Features) Include(features ...Feature) bool {
+	if len(features) > len(f) {
 		return false
 	}
 	fKeys := make(map[Feature]bool)
-	for _, v := range rf {
+	for _, v := range f {
 		fKeys[v] = true
 	}
 	for _, f := range features {
@@ -89,9 +89,9 @@ func (rf Features) Include(features ...Feature) bool {
 }
 
 // Supports does the actual work of filtering for specific features
-func (rc Registry) Supports(features ...Feature) Registry {
+func (r Registry) Supports(features ...Feature) Registry {
 	supportedRegistries := make(Registry, 0)
-	for _, reg := range rc {
+	for _, reg := range r {
 		if reg.Features.Include(features...) {
 			supportedRegistries = append(supportedRegistries, reg)
 		}
@@ -100,9 +100,9 @@ func (rc Registry) Supports(features ...Feature) Registry {
 }
 
 // Using does the actual work of filtering for a specific protocol type
-func (rc Registry) Using(proto string) Registry {
+func (r Registry) Using(proto string) Registry {
 	supportedRegistries := make(Registry, 0)
-	for _, reg := range rc {
+	for _, reg := range r {
 		if reg.Protocol == proto {
 			supportedRegistries = append(supportedRegistries, reg)
 		}
@@ -111,9 +111,9 @@ func (rc Registry) Using(proto string) Registry {
 }
 
 // For does the actual work of filtering for a specific provider name
-func (rc Registry) For(provider string) Registry {
+func (r Registry) For(provider string) Registry {
 	supportedRegistries := make(Registry, 0)
-	for _, reg := range rc {
+	for _, reg := range r {
 		if reg.Name == provider {
 			supportedRegistries = append(supportedRegistries, reg)
 		}
@@ -139,12 +139,12 @@ func deduplicate(s []string) []string {
 }
 
 // PreferProtocol does the actual work of moving preferred protocols to the start of the collection
-func (rc Registry) PreferProtocol(protocols ...string) Registry {
+func (r Registry) PreferProtocol(protocols ...string) Registry {
 	var final Registry
 	var leftOver Registry
 	tracking := make(map[int]Registry)
 	protocols = deduplicate(protocols)
-	for _, registry := range rc {
+	for _, registry := range r {
 		var movedToTracking bool
 		for index, pName := range protocols {
 			if strings.EqualFold(registry.Protocol, pName) {
