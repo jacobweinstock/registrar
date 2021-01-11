@@ -14,29 +14,34 @@ type Feature string
 // Registry holds a slice of Registry types
 type Registry []*Driver
 
-// Initializer inits a driver
-type Initializer interface {
-	Init() interface{}
-}
-
-// Compatibler for whether the driver is compatible
-type Compatibler interface {
+// Verifier for whether the driver is compatible
+type Verifier interface {
 	Compatible(context.Context) bool
 }
 
 // Driver holds the info about a driver
 type Driver struct {
-	Name              string
-	Protocol          string
-	Features          Features
-	RegistryInterface interface{}
-	Initializer
-	Compatibler
+	Name            string
+	Protocol        string
+	Features        Features
+	DriverInterface interface{}
+	Verifier
 }
 
 // NewRegistry new Collection
 func NewRegistry() Registry {
 	return make(Registry, 0)
+}
+
+// Register will add a provider with details to the main registryCollection
+func (rc *Registry) Register(provider, protocol string, driverInterface interface{}, compatFn Verifier, features Features) {
+	*rc = append(*rc, &Driver{
+		Name:            provider,
+		Protocol:        protocol,
+		Features:        features,
+		Verifier:        compatFn,
+		DriverInterface: driverInterface,
+	})
 }
 
 // Include does the actual work of filtering for specific features
@@ -129,16 +134,4 @@ func (rc Registry) PreferProtocol(protocols ...string) Registry {
 	}
 	final = append(final, leftOver...)
 	return final
-}
-
-// Register will add a provider with details to the main registryCollection
-func (rc *Registry) Register(provider, protocol string, initfn Initializer, compatFn Compatibler, features Features) {
-	*rc = append(*rc, &Driver{
-		Name:              provider,
-		Protocol:          protocol,
-		Initializer:       initfn,
-		Features:          features,
-		Compatibler:       compatFn,
-		RegistryInterface: initfn.Init(),
-	})
 }

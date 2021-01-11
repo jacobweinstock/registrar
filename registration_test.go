@@ -10,14 +10,8 @@ const (
 	// FeaturePowerState represents the powerstate functionality
 	// an implementation will use these when they have implemented
 	// corresponding interface method.
-	FeaturePowerState    Feature = "powerstate"
-	FeaturePowerSet      Feature = "powerset"
-	FeatureUserCreate    Feature = "usercreate"
-	FeatureUserDelete    Feature = "userdelete"
-	FeatureUserUpdate    Feature = "userupdate"
-	FeatureUserRead      Feature = "userread"
-	FeatureBmcReset      Feature = "bmcreset"
-	FeatureBootDeviceSet Feature = "bootdeviceset"
+	FeaturePowerSet   Feature = "powerset"
+	FeatureUserCreate Feature = "usercreate"
 )
 
 func TestInclude(t *testing.T) {

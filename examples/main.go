@@ -17,12 +17,8 @@ type driverOne struct {
 	Features registration.Features
 }
 
-func (do *driverOne) Init() interface{} {
-	fmt.Printf("%+v\n", do)
-	return do
-}
-
 func (do *driverOne) Compatible(ctx context.Context) bool {
+	fmt.Println("compatible method")
 	fmt.Printf("%+v\n", do)
 	return true
 }
@@ -42,12 +38,8 @@ type driverTwo struct {
 	Features registration.Features
 }
 
-func (do *driverTwo) Init() interface{} {
-	fmt.Printf("%+v\n", do)
-	return do
-}
-
 func (do *driverTwo) Compatible(ctx context.Context) bool {
+	fmt.Println("compatible method")
 	fmt.Printf("%+v\n", do)
 	return true
 }
@@ -85,8 +77,8 @@ func main() {
 	}
 	reg.Register(d2.name, d2.protocol, d2, d2, d2.Features)
 
-	fmt.Printf("%+v\n", reg[0].Initializer)
-	iface := reg[0].RegistryInterface
+	fmt.Printf("%+v\n", reg[0].DriverInterface)
+	iface := reg[0].DriverInterface
 
 	fmt.Printf("compatible: %v\n", reg[0].Compatible(context.Background()))
 	state, err := iface.(PowerGetter).GetPower(context.Background())
