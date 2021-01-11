@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jacobweinstock/registration"
+	"github.com/jacobweinstock/registry"
 )
 
 type driverOne struct {
@@ -14,7 +14,7 @@ type driverOne struct {
 	pass     string
 	host     string
 	port     string
-	Features registration.Features
+	Features registry.Features
 }
 
 func (do *driverOne) Compatible(ctx context.Context) bool {
@@ -35,7 +35,7 @@ type driverTwo struct {
 	pass     string
 	host     string
 	port     string
-	Features registration.Features
+	Features registry.Features
 }
 
 func (do *driverTwo) Compatible(ctx context.Context) bool {
@@ -55,11 +55,11 @@ type PowerGetter interface {
 }
 
 func main() {
-	reg := registration.NewRegistry()
+	reg := registry.NewRegistry()
 	do := &driverOne{
 		name:     "driverOne",
 		protocol: "ipmi",
-		Features: registration.Features{"power"},
+		Features: registry.Features{"power"},
 		user:     "admin",
 		pass:     "admin",
 		host:     "localhost",
@@ -69,7 +69,7 @@ func main() {
 	d2 := &driverTwo{
 		name:     "driverTwo",
 		protocol: "ipmi",
-		Features: registration.Features{"power"},
+		Features: registry.Features{"power"},
 		user:     "admin",
 		pass:     "admin",
 		host:     "localhost",
