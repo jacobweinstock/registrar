@@ -10,7 +10,7 @@ A Go library implementing a variant of the registration pattern
 
 The registration, driver, strategy or singleton pattern is the idea that implementations of the same functionality are built up into a registry for use and/or selection at runtime. This pattern is used in a few places in the standard library with the `net/http`, `database/sql`, and `flag` packages. In my experience, most notably with the registration of `database/sql` drivers.
 
-This library is a variant of this pattern. Its use case is to build up a registry of implementations which can be filtered or ordered and returned as a generic slice of `interface{}`. These interfaces can then be passed along to functions that can type assert or switch case on them to run concrete interface methods. See the [examples](examples/) directory for code snippets.
+This library is a variant of this pattern. Its use case is to build up a registry of implementations which can be filtered or ordered and returned as a generic slice of `interface{}`. These interfaces can then be passed along to functions that can type assert or switch case on them to run concrete interface methods. The registration of a driver in this package is explicit  (`Registry.Register()`). All [magic](https://peter.bourgon.org/blog/2017/06/09/theory-of-modern-go.html) is purposefully avoided. See the [examples](examples/) directory for code snippets.
 
 ## Background
 
@@ -20,3 +20,4 @@ This library is produced as a general library but was built from its original us
 
 - <https://dave.cheney.net/2017/06/11/go-without-package-scoped-variables>
 - <https://eli.thegreenplace.net/2019/design-patterns-in-gos-databasesql-package/>
+- <https://peter.bourgon.org/blog/2017/06/09/theory-of-modern-go.html>

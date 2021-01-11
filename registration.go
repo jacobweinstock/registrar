@@ -71,8 +71,8 @@ func (r *Registry) FilterForCompatible(ctx context.Context) {
 	*r = result
 }
 
-// Include does the actual work of filtering for specific features
-func (f Features) Include(features ...Feature) bool {
+// include does the actual work of filtering for specific features
+func (f Features) include(features ...Feature) bool {
 	if len(features) > len(f) {
 		return false
 	}
@@ -92,7 +92,7 @@ func (f Features) Include(features ...Feature) bool {
 func (r Registry) Supports(features ...Feature) Registry {
 	supportedRegistries := make(Registry, 0)
 	for _, reg := range r {
-		if reg.Features.Include(features...) {
+		if reg.Features.include(features...) {
 			supportedRegistries = append(supportedRegistries, reg)
 		}
 	}

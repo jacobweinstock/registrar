@@ -37,7 +37,7 @@ func TestInclude(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.features.Include(tc.includes...)
+			result := tc.features.include(tc.includes...)
 			diff := cmp.Diff(tc.want, result)
 			if diff != "" {
 				t.Fatal(diff)
