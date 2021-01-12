@@ -49,13 +49,13 @@ func TestInclude(t *testing.T) {
 func TestSupports(t *testing.T) {
 	testCases := []struct {
 		name       string
-		collection Registry
+		collection Drivers
 		supports   Features
-		want       Registry
+		want       Drivers
 	}{
 		{
 			name: "no registry supports UserCreate",
-			collection: Registry{
+			collection: Drivers{
 				{
 					Name:     "ipmitool",
 					Protocol: "ipmi",
@@ -64,11 +64,11 @@ func TestSupports(t *testing.T) {
 			supports: Features{
 				FeatureUserCreate,
 			},
-			want: Registry{},
+			want: Drivers{},
 		},
 		{
 			name: "one registry supports UserCreate",
-			collection: Registry{
+			collection: Drivers{
 				{
 					Name:     "ipmitool",
 					Protocol: "ipmi",
@@ -77,7 +77,7 @@ func TestSupports(t *testing.T) {
 			supports: Features{
 				FeatureUserCreate,
 			},
-			want: Registry{{
+			want: Drivers{{
 				Name:     "ipmitool",
 				Protocol: "ipmi",
 				Features: []Feature{FeatureUserCreate},
@@ -99,31 +99,31 @@ func TestSupports(t *testing.T) {
 func TestUsing(t *testing.T) {
 	testCases := []struct {
 		name       string
-		collection Registry
+		collection Drivers
 		proto      string
-		want       Registry
+		want       Drivers
 	}{
 		{
 			name: "proto is not found",
-			collection: Registry{
+			collection: Drivers{
 				{
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeaturePowerSet},
 				}},
 			proto: "web",
-			want:  Registry{},
+			want:  Drivers{},
 		},
 		{
 			name: "proto is found",
-			collection: Registry{
+			collection: Drivers{
 				{
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeaturePowerSet},
 				}},
 			proto: "ipmi",
-			want: Registry{
+			want: Drivers{
 				{
 					Name:     "ipmitool",
 					Protocol: "ipmi",
@@ -146,31 +146,31 @@ func TestUsing(t *testing.T) {
 func TestFor(t *testing.T) {
 	testCases := []struct {
 		name       string
-		collection Registry
+		collection Drivers
 		provider   string
-		want       Registry
+		want       Drivers
 	}{
 		{
 			name: "proto is not found",
-			collection: Registry{
+			collection: Drivers{
 				{
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeaturePowerSet},
 				}},
 			provider: "dell",
-			want:     Registry{},
+			want:     Drivers{},
 		},
 		{
 			name: "proto is found",
-			collection: Registry{
+			collection: Drivers{
 				{
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeaturePowerSet},
 				}},
 			provider: "ipmitool",
-			want: Registry{
+			want: Drivers{
 				{
 					Name:     "ipmitool",
 					Protocol: "ipmi",
@@ -194,10 +194,10 @@ func TestAll(t *testing.T) {
 	testCases := []struct {
 		name         string
 		addARegistry bool
-		want         Registry
+		want         Drivers
 	}{
-		{name: "empty collection", want: Registry{}},
-		{name: "single collection", addARegistry: true, want: Registry{{
+		{name: "empty collection", want: Drivers{}},
+		{name: "single collection", addARegistry: true, want: Drivers{{
 			Name:     "dell",
 			Protocol: "web",
 			Features: []Feature{FeaturePowerSet},
@@ -222,10 +222,10 @@ func TestSupportFn(t *testing.T) {
 		name         string
 		addARegistry bool
 		features     []Feature
-		want         Registry
+		want         Drivers
 	}{
-		{name: "empty collection", want: Registry{}},
-		{name: "single collection", features: []Feature{FeatureUserCreate}, addARegistry: true, want: Registry{{
+		{name: "empty collection", want: Drivers{}},
+		{name: "single collection", features: []Feature{FeatureUserCreate}, addARegistry: true, want: Drivers{{
 			Name:     "dell",
 			Protocol: "web",
 			Features: []Feature{FeatureUserCreate},
@@ -251,10 +251,10 @@ func TestUsingFn(t *testing.T) {
 		name         string
 		addARegistry bool
 		proto        string
-		want         Registry
+		want         Drivers
 	}{
-		{name: "empty collection", want: Registry{}},
-		{name: "single collection", proto: "web", addARegistry: true, want: Registry{{
+		{name: "empty collection", want: Drivers{}},
+		{name: "single collection", proto: "web", addARegistry: true, want: Drivers{{
 			Name:     "dell",
 			Protocol: "web",
 			Features: []Feature{FeatureUserCreate},
@@ -280,10 +280,10 @@ func TestForFn(t *testing.T) {
 		name         string
 		addARegistry bool
 		provider     string
-		want         Registry
+		want         Drivers
 	}{
-		{name: "empty collection", want: Registry{}},
-		{name: "single collection", provider: "dell", addARegistry: true, want: Registry{{
+		{name: "empty collection", want: Drivers{}},
+		{name: "single collection", provider: "dell", addARegistry: true, want: Drivers{{
 			Name:     "dell",
 			Protocol: "web",
 			Features: []Feature{FeatureUserCreate},
@@ -305,7 +305,7 @@ func TestForFn(t *testing.T) {
 }
 
 func TestPrefer(t *testing.T) {
-	unorderedCollection := Registry{
+	unorderedCollection := Drivers{
 		{
 			Name:     "dell",
 			Protocol: "web",
@@ -326,10 +326,10 @@ func TestPrefer(t *testing.T) {
 		name         string
 		addARegistry bool
 		protocol     []string
-		want         Registry
+		want         Drivers
 	}{
 		{name: "empty collection", want: unorderedCollection},
-		{name: "collection", protocol: []string{"web"}, addARegistry: true, want: Registry{
+		{name: "collection", protocol: []string{"web"}, addARegistry: true, want: Drivers{
 			{
 				Name:     "dell",
 				Protocol: "web",
@@ -346,7 +346,7 @@ func TestPrefer(t *testing.T) {
 				Features: []Feature{FeatureUserCreate},
 			},
 		}},
-		{name: "collection with duplicate protocols", protocol: []string{"web", "web"}, addARegistry: true, want: Registry{
+		{name: "collection with duplicate protocols", protocol: []string{"web", "web"}, addARegistry: true, want: Drivers{
 			{
 				Name:     "dell",
 				Protocol: "web",

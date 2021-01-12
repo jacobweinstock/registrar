@@ -6,16 +6,17 @@ import (
 	"sync"
 )
 
-// Features holds the features a provider supports
+// Features holds the features a driver supports
 type Features []Feature
 
-// Feature represents a single feature available
+// Feature represents a single feature a driver supports
 type Feature string
 
-// Registry holds a slice of Registry types
-type Registry []*Driver
+// Drivers holds a slice of Driver types
+type Drivers []*Driver
 
-// Verifier for whether the driver is compatible
+// Verifier allows implementations to define a method for
+// determining whether a driver is compatible for use
 type Verifier interface {
 	Compatible(context.Context) bool
 }
@@ -29,14 +30,14 @@ type Driver struct {
 	Verifier
 }
 
-// NewRegistry new Collection
-func NewRegistry() Registry {
-	return make(Registry, 0)
+// NewRegistry returns a new Driver registry
+func NewRegistry() Drivers {
+	return make(Drivers, 0)
 }
 
-// Register will add a provider with details to the main registryCollection
-func (r *Registry) Register(name, protocol string, driverInterface interface{}, compatFn Verifier, features Features) {
-	*r = append(*r, &Driver{
+// Register will add a driver a Driver registry
+func (d *Drivers) Register(name, protocol string, driverInterface interface{}, compatFn Verifier, features Features) {
+	*d = append(*d, &Driver{
 		Name:            name,
 		Protocol:        protocol,
 		Features:        features,
@@ -45,20 +46,20 @@ func (r *Registry) Register(name, protocol string, driverInterface interface{}, 
 	})
 }
 
-// GetDriverInterfaces returns a slice of just the driver interfaces
-func (r Registry) GetDriverInterfaces() []interface{} {
+// GetDriverInterfaces returns a slice of just the generic driver interfaces
+func (d Drivers) GetDriverInterfaces() []interface{} {
 	results := make([]interface{}, 0)
-	for _, elem := range r {
+	for _, elem := range d {
 		results = append(results, elem.DriverInterface)
 	}
 	return results
 }
 
-// FilterForCompatible updates the registry with only compatible implementations
-func (r *Registry) FilterForCompatible(ctx context.Context) {
+// FilterForCompatible updates the driver registry with only compatible implementations
+func (d *Drivers) FilterForCompatible(ctx context.Context) {
 	var wg sync.WaitGroup
-	result := make(Registry, 0)
-	for _, elem := range *r {
+	result := make(Drivers, 0)
+	for _, elem := range *d {
 		wg.Add(1)
 		go func(isCompat Verifier, reg *Driver, wg *sync.WaitGroup) {
 			if isCompat.Compatible(ctx) {
@@ -68,7 +69,7 @@ func (r *Registry) FilterForCompatible(ctx context.Context) {
 		}(elem.Verifier, elem, &wg)
 	}
 	wg.Wait()
-	*r = result
+	*d = result
 }
 
 // include does the actual work of filtering for specific features
@@ -89,9 +90,9 @@ func (f Features) include(features ...Feature) bool {
 }
 
 // Supports does the actual work of filtering for specific features
-func (r Registry) Supports(features ...Feature) Registry {
-	supportedRegistries := make(Registry, 0)
-	for _, reg := range r {
+func (d Drivers) Supports(features ...Feature) Drivers {
+	supportedRegistries := make(Drivers, 0)
+	for _, reg := range d {
 		if reg.Features.include(features...) {
 			supportedRegistries = append(supportedRegistries, reg)
 		}
@@ -100,9 +101,9 @@ func (r Registry) Supports(features ...Feature) Registry {
 }
 
 // Using does the actual work of filtering for a specific protocol type
-func (r Registry) Using(proto string) Registry {
-	supportedRegistries := make(Registry, 0)
-	for _, reg := range r {
+func (d Drivers) Using(proto string) Drivers {
+	supportedRegistries := make(Drivers, 0)
+	for _, reg := range d {
 		if reg.Protocol == proto {
 			supportedRegistries = append(supportedRegistries, reg)
 		}
@@ -110,11 +111,11 @@ func (r Registry) Using(proto string) Registry {
 	return supportedRegistries
 }
 
-// For does the actual work of filtering for a specific provider name
-func (r Registry) For(provider string) Registry {
-	supportedRegistries := make(Registry, 0)
-	for _, reg := range r {
-		if reg.Name == provider {
+// For does the actual work of filtering for a specific driver name
+func (d Drivers) For(driver string) Drivers {
+	supportedRegistries := make(Drivers, 0)
+	for _, reg := range d {
+		if reg.Name == driver {
 			supportedRegistries = append(supportedRegistries, reg)
 		}
 	}
@@ -138,13 +139,13 @@ func deduplicate(s []string) []string {
 	return result
 }
 
-// PreferProtocol does the actual work of moving preferred protocols to the start of the collection
-func (r Registry) PreferProtocol(protocols ...string) Registry {
-	var final Registry
-	var leftOver Registry
-	tracking := make(map[int]Registry)
+// PreferProtocol does the actual work of moving preferred protocols to the start of the driver registry
+func (d Drivers) PreferProtocol(protocols ...string) Drivers {
+	var final Drivers
+	var leftOver Drivers
+	tracking := make(map[int]Drivers)
 	protocols = deduplicate(protocols)
-	for _, registry := range r {
+	for _, registry := range d {
 		var movedToTracking bool
 		for index, pName := range protocols {
 			if strings.EqualFold(registry.Protocol, pName) {
