@@ -40,6 +40,7 @@ type Driver struct {
 	Name            string
 	Protocol        string
 	Features        Features
+	Metadata        interface{}
 	DriverInterface interface{}
 }
 
@@ -67,11 +68,12 @@ func NewRegistry(opts ...Option) *Registry {
 }
 
 // Register will add a driver a Driver registry
-func (r *Registry) Register(name, protocol string, driverInterface interface{}, features Features) {
+func (r *Registry) Register(name, protocol string, features Features, metadata interface{}, driverInterface interface{}) {
 	r.Drivers = append(r.Drivers, &Driver{
 		Name:            name,
 		Protocol:        protocol,
 		Features:        features,
+		Metadata:        metadata,
 		DriverInterface: driverInterface,
 	})
 }
@@ -85,7 +87,9 @@ func (r Registry) GetDriverInterfaces() []interface{} {
 	return results
 }
 
-// FilterForCompatible updates the driver registry with only compatible implementations
+// FilterForCompatible updates the driver registry with only compatible implementations.
+// compatible implementations are determined by running the Compatible method of the Verifier
+// interface. registered drivers must implement the Verifier interface for this.
 func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	var wg sync.WaitGroup
 	result := make(Drivers, 0)
@@ -98,7 +102,7 @@ func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 					result = append(result, reg)
 				}
 			default:
-				r.Logger.V(1).Info(fmt.Sprintf("not a Verifier implementation: %T", c))
+				r.Logger.V(1).Info(fmt.Sprintf("could not check for compatibility. not a Verifier implementation: %T", c))
 			}
 			wg.Done()
 		}(elem.DriverInterface, elem, &wg)

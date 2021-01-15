@@ -88,7 +88,7 @@ func main() {
 		port:     "623",
 		Log:      log,
 	}
-	reg.Register(do.name, do.protocol, do, do.Features)
+	reg.Register(do.name, do.protocol, do.Features, nil, do)
 	d2 := &driverTwo{
 		name:     "driverTwo",
 		protocol: "ipmi",
@@ -99,7 +99,7 @@ func main() {
 		port:     "623",
 		Log:      log,
 	}
-	reg.Register(d2.name, d2.protocol, d2, d2.Features)
+	reg.Register(d2.name, d2.protocol, d2.Features, nil, d2)
 	log.V(0).Info("debugging", "driver interface", reg.Drivers[0].DriverInterface)
 	iface := reg.Drivers[0].DriverInterface
 	ctx := context.Background()

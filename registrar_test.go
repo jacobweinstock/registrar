@@ -208,7 +208,7 @@ func TestAll(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rg := NewRegistry()
 			if tc.addARegistry {
-				rg.Register("dell", "web", nil, []Feature{FeaturePowerSet})
+				rg.Register("dell", "web", []Feature{FeaturePowerSet}, nil, nil)
 			}
 			if diff := cmp.Diff(tc.want, rg, cmpopts.IgnoreFields(Registry{}, "Logger")); diff != "" {
 				t.Fatal(diff)
@@ -235,7 +235,7 @@ func TestSupportFn(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rg := NewRegistry()
 			if tc.addARegistry {
-				rg.Register("dell", "web", nil, []Feature{FeatureUserCreate})
+				rg.Register("dell", "web", []Feature{FeatureUserCreate}, nil, nil)
 			}
 			result := rg.Supports(tc.features...)
 			if diff := cmp.Diff(tc.want.Drivers, result); diff != "" {
@@ -264,7 +264,7 @@ func TestUsingFn(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rg := NewRegistry()
 			if tc.addARegistry {
-				rg.Register("dell", "web", nil, []Feature{FeatureUserCreate})
+				rg.Register("dell", "web", []Feature{FeatureUserCreate}, nil, nil)
 			}
 			result := rg.Using(tc.proto)
 			if diff := cmp.Diff(tc.want.Drivers, result); diff != "" {
@@ -293,7 +293,7 @@ func TestForFn(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rg := NewRegistry()
 			if tc.addARegistry {
-				rg.Register("dell", "web", nil, []Feature{FeatureUserCreate})
+				rg.Register("dell", "web", []Feature{FeatureUserCreate}, nil, nil)
 			}
 			result := rg.For(tc.provider)
 			if diff := cmp.Diff(tc.want.Drivers, result); diff != "" {
@@ -378,7 +378,7 @@ func TestPrefer(t *testing.T) {
 func TestGetDriverInterfaces(t *testing.T) {
 	rg := NewRegistry()
 	do := &driverOne{}
-	rg.Register(do.name, do.protocol, do, do.features)
+	rg.Register(do.name, do.protocol, do.features, nil, do)
 	driverInterfaces := rg.GetDriverInterfaces()
 	if diff := cmp.Diff(driverInterfaces, []interface{}{do}, cmp.AllowUnexported(driverOne{})); diff != "" {
 		t.Fatal(diff)
@@ -401,7 +401,7 @@ func TestFilterForCompatible(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			rg := NewRegistry(WithLogger(defaultLogger()))
-			rg.Register(tc.driver.name, tc.driver.protocol, tc.driver, tc.driver.features)
+			rg.Register(tc.driver.name, tc.driver.protocol, tc.driver.features, nil, tc.driver)
 			rg.Drivers = rg.FilterForCompatible(context.Background())
 			driverInterfaces := rg.GetDriverInterfaces()
 			if diff := cmp.Diff(driverInterfaces, tc.want, cmp.AllowUnexported(driverOne{})); diff != "" {
