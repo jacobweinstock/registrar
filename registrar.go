@@ -102,6 +102,7 @@ func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 					result = append(result, reg)
 				}
 			default:
+				result = append(result, reg)
 				r.Logger.V(1).Info(fmt.Sprintf("could not check for compatibility. not a Verifier implementation: %T", c))
 			}
 			wg.Done()
