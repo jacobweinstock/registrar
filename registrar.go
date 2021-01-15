@@ -1,24 +1,38 @@
-package registry
+package registrar
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
-)
 
-// Features holds the features a driver supports
-type Features []Feature
+	"github.com/go-logr/logr"
+	"github.com/go-logr/zapr"
+	"go.uber.org/zap"
+)
 
 // Feature represents a single feature a driver supports
 type Feature string
 
+// Features holds the features a driver supports
+type Features []Feature
+
 // Drivers holds a slice of Driver types
 type Drivers []*Driver
+
+// Option for setting optional Registry values
+type Option func(*Registry)
 
 // Verifier allows implementations to define a method for
 // determining whether a driver is compatible for use
 type Verifier interface {
 	Compatible(context.Context) bool
+}
+
+// Registry holds the registered drivers
+type Registry struct {
+	Logger  logr.Logger
+	Drivers Drivers
 }
 
 // Driver holds the info about a driver
@@ -27,49 +41,70 @@ type Driver struct {
 	Protocol        string
 	Features        Features
 	DriverInterface interface{}
-	Verifier
+}
+
+// WithLogger sets the logger
+func WithLogger(logger logr.Logger) Option {
+	return func(args *Registry) { args.Logger = logger }
+}
+
+// WithDrivers sets the drivers
+func WithDrivers(drivers Drivers) Option {
+	return func(args *Registry) { args.Drivers = drivers }
 }
 
 // NewRegistry returns a new Driver registry
-func NewRegistry() Drivers {
-	return make(Drivers, 0)
+func NewRegistry(opts ...Option) *Registry {
+	var defaultRegistry = &Registry{
+		Logger:  defaultLogger(),
+		Drivers: make(Drivers, 0),
+	}
+	for _, opt := range opts {
+		opt(defaultRegistry)
+	}
+
+	return defaultRegistry
 }
 
 // Register will add a driver a Driver registry
-func (d *Drivers) Register(name, protocol string, driverInterface interface{}, compatFn Verifier, features Features) {
-	*d = append(*d, &Driver{
+func (r *Registry) Register(name, protocol string, driverInterface interface{}, features Features) {
+	r.Drivers = append(r.Drivers, &Driver{
 		Name:            name,
 		Protocol:        protocol,
 		Features:        features,
-		Verifier:        compatFn,
 		DriverInterface: driverInterface,
 	})
 }
 
 // GetDriverInterfaces returns a slice of just the generic driver interfaces
-func (d Drivers) GetDriverInterfaces() []interface{} {
+func (r Registry) GetDriverInterfaces() []interface{} {
 	results := make([]interface{}, 0)
-	for _, elem := range d {
+	for _, elem := range r.Drivers {
 		results = append(results, elem.DriverInterface)
 	}
 	return results
 }
 
 // FilterForCompatible updates the driver registry with only compatible implementations
-func (d *Drivers) FilterForCompatible(ctx context.Context) {
+func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	var wg sync.WaitGroup
 	result := make(Drivers, 0)
-	for _, elem := range *d {
+	for _, elem := range r.Drivers {
 		wg.Add(1)
-		go func(isCompat Verifier, reg *Driver, wg *sync.WaitGroup) {
-			if isCompat.Compatible(ctx) {
-				result = append(result, reg)
+		go func(isCompat interface{}, reg *Driver, wg *sync.WaitGroup) {
+			switch c := isCompat.(type) {
+			case Verifier:
+				if c.Compatible(ctx) {
+					result = append(result, reg)
+				}
+			default:
+				r.Logger.V(1).Info(fmt.Sprintf("not a Verifier implementation: %T", c))
 			}
 			wg.Done()
-		}(elem.Verifier, elem, &wg)
+		}(elem.DriverInterface, elem, &wg)
 	}
 	wg.Wait()
-	*d = result
+	return result
 }
 
 // include does the actual work of filtering for specific features
@@ -90,9 +125,9 @@ func (f Features) include(features ...Feature) bool {
 }
 
 // Supports does the actual work of filtering for specific features
-func (d Drivers) Supports(features ...Feature) Drivers {
+func (r Registry) Supports(features ...Feature) Drivers {
 	supportedRegistries := make(Drivers, 0)
-	for _, reg := range d {
+	for _, reg := range r.Drivers {
 		if reg.Features.include(features...) {
 			supportedRegistries = append(supportedRegistries, reg)
 		}
@@ -101,9 +136,9 @@ func (d Drivers) Supports(features ...Feature) Drivers {
 }
 
 // Using does the actual work of filtering for a specific protocol type
-func (d Drivers) Using(proto string) Drivers {
+func (r Registry) Using(proto string) Drivers {
 	supportedRegistries := make(Drivers, 0)
-	for _, reg := range d {
+	for _, reg := range r.Drivers {
 		if reg.Protocol == proto {
 			supportedRegistries = append(supportedRegistries, reg)
 		}
@@ -112,9 +147,9 @@ func (d Drivers) Using(proto string) Drivers {
 }
 
 // For does the actual work of filtering for a specific driver name
-func (d Drivers) For(driver string) Drivers {
+func (r Registry) For(driver string) Drivers {
 	supportedRegistries := make(Drivers, 0)
-	for _, reg := range d {
+	for _, reg := range r.Drivers {
 		if reg.Name == driver {
 			supportedRegistries = append(supportedRegistries, reg)
 		}
@@ -140,12 +175,12 @@ func deduplicate(s []string) []string {
 }
 
 // PreferProtocol does the actual work of moving preferred protocols to the start of the driver registry
-func (d Drivers) PreferProtocol(protocols ...string) Drivers {
+func (r Registry) PreferProtocol(protocols ...string) Drivers {
 	var final Drivers
 	var leftOver Drivers
 	tracking := make(map[int]Drivers)
 	protocols = deduplicate(protocols)
-	for _, registry := range d {
+	for _, registry := range r.Drivers {
 		var movedToTracking bool
 		for index, pName := range protocols {
 			if strings.EqualFold(registry.Protocol, pName) {
@@ -162,4 +197,21 @@ func (d Drivers) PreferProtocol(protocols ...string) Drivers {
 	}
 	final = append(final, leftOver...)
 	return final
+}
+
+func defaultLogger() logr.Logger {
+	config := zap.Config{
+		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
+		Encoding:         "json",
+		EncoderConfig:    zap.NewProductionEncoderConfig(),
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+
+	logger, err := config.Build()
+	if err != nil {
+		panic(err)
+	}
+
+	return zapr.NewLogger(logger)
 }

@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/jacobweinstock/registry"
+	"github.com/go-logr/logr"
+	"github.com/go-logr/zapr"
+	"github.com/jacobweinstock/registrar"
+	"go.uber.org/zap"
 )
 
 type driverOne struct {
@@ -14,17 +16,18 @@ type driverOne struct {
 	pass     string
 	host     string
 	port     string
-	Features registry.Features
+	Features registrar.Features
+	Log      logr.Logger
 }
 
 func (do *driverOne) Compatible(ctx context.Context) bool {
-	fmt.Println("compatible method")
-	fmt.Printf("%+v\n", do)
+	do.Log.V(0).Info("compatible method")
+	do.Log.V(0).Info("debugging", "driverOne", do)
 	return true
 }
 
 func (do *driverOne) GetPower(ctx context.Context) (string, error) {
-	fmt.Printf("%+v\n", do)
+	do.Log.V(0).Info("debugging", "driverOne", do)
 	return "on", nil
 }
 
@@ -35,17 +38,18 @@ type driverTwo struct {
 	pass     string
 	host     string
 	port     string
-	Features registry.Features
+	Features registrar.Features
+	Log      logr.Logger
 }
 
-func (do *driverTwo) Compatible(ctx context.Context) bool {
-	fmt.Println("compatible method")
-	fmt.Printf("%+v\n", do)
+func (do *driverTwo) Compatiblea(ctx context.Context) bool {
+	do.Log.V(0).Info("compatible method")
+	do.Log.V(0).Info("debugging", "driverTwo", do)
 	return true
 }
 
 func (do *driverTwo) GetPower(ctx context.Context) (string, error) {
-	fmt.Printf("%+v\n", do)
+	do.Log.V(0).Info("debugging", "driverTwo", do)
 	return "on", nil
 }
 
@@ -54,34 +58,54 @@ type PowerGetter interface {
 	GetPower(ctx context.Context) (string, error)
 }
 
+func defaultLogger() logr.Logger {
+	config := zap.Config{
+		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
+		Encoding:         "json",
+		EncoderConfig:    zap.NewProductionEncoderConfig(),
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+
+	logger, err := config.Build()
+	if err != nil {
+		panic(err)
+	}
+
+	return zapr.NewLogger(logger)
+}
+
 func main() {
-	reg := registry.NewRegistry()
+	log := defaultLogger()
+	reg := registrar.NewRegistry(registrar.WithLogger(log))
 	do := &driverOne{
 		name:     "driverOne",
 		protocol: "ipmi",
-		Features: registry.Features{"power"},
+		Features: registrar.Features{"power"},
 		user:     "admin",
 		pass:     "admin",
 		host:     "localhost",
 		port:     "623",
+		Log:      log,
 	}
-	reg.Register(do.name, do.protocol, do, do, do.Features)
+	reg.Register(do.name, do.protocol, do, do.Features)
 	d2 := &driverTwo{
 		name:     "driverTwo",
 		protocol: "ipmi",
-		Features: registry.Features{"power"},
+		Features: registrar.Features{"power"},
 		user:     "admin",
 		pass:     "admin",
 		host:     "localhost",
 		port:     "623",
+		Log:      log,
 	}
-	reg.Register(d2.name, d2.protocol, d2, d2, d2.Features)
-
-	fmt.Printf("%+v\n", reg[0].DriverInterface)
-	iface := reg[0].DriverInterface
-
-	fmt.Printf("compatible: %v\n", reg[0].Compatible(context.Background()))
-	state, err := iface.(PowerGetter).GetPower(context.Background())
-	fmt.Printf("%v, %v\n", state, err)
-	fmt.Printf("%+v\n", reg[0])
+	reg.Register(d2.name, d2.protocol, d2, d2.Features)
+	log.V(0).Info("debugging", "driver interface", reg.Drivers[0].DriverInterface)
+	iface := reg.Drivers[0].DriverInterface
+	ctx := context.Background()
+	reg.FilterForCompatible(ctx)
+	log.V(0).Info("debugging", "compatible", reg.Drivers[0].DriverInterface.(registrar.Verifier).Compatible(context.Background()))
+	state, err := iface.(PowerGetter).GetPower(ctx)
+	log.V(0).Info("debugging", "state", state, "err", err)
+	log.V(0).Info("debugging", "driver[0]", reg.Drivers[0])
 }
