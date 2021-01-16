@@ -3,6 +3,7 @@ help:
 
 .PHONY: all
 all: test cover lint goimports ## run all checks
+	go vet ./...
 
 .PHONY: test
 test: ## Run unit tests
