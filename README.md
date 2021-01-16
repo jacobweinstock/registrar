@@ -16,6 +16,28 @@ This library is a variant of this pattern. Its use case is to build up a registr
 
 This library is produced as a general library but was built from its original use-case in [bmclib](https://github.com/bmc-toolbox/bmclib/blob/master/registrar/registrar.go). The purpose of [bmclib](https://github.com/bmc-toolbox/bmclib) is to interact with Baseboard Management Controllers (BMC). There are many different ways to interact with a single BMC, so a registry of the different implementations is built up and then when a request to perform a single action (power state for example) is tried with all the different implementations until one works.
 
+## Usage
+
+```go
+// create a registry
+reg := registrar.NewRegistry()
+
+// registry drivers
+one := &driverOne{name: "driverOne", protocol: "tcp", metadata: "this is driver one", features: registrar.Features{registrar.Feature("always double checking")}}
+two := &driverTwo{name: "driverTwo", protocol: "udp", metadata: "this is driver two", features: registrar.Features{registrar.Feature("set and forget")}}
+reg.Register(one.name, one.protocol, one.features, one.metadata, one)
+reg.Register(two.name, two.protocol, two.features, two.metadata, two)
+
+// do some filtering
+ctx := context.Background()
+reg.Drivers = reg.Using("tcp")
+reg.Drivers = reg.FilterForCompatible(ctx)
+
+// get the interfaces for use
+interfaces := reg.GetDriverInterfaces()
+
+```
+
 ## References  
 
 - <https://dave.cheney.net/2017/06/11/go-without-package-scoped-variables>

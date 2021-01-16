@@ -2,110 +2,85 @@ package main
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/go-logr/logr"
-	"github.com/go-logr/zapr"
 	"github.com/jacobweinstock/registrar"
-	"go.uber.org/zap"
 )
 
+// your specific implementations
 type driverOne struct {
 	name     string
 	protocol string
-	user     string
-	pass     string
-	host     string
-	port     string
-	Features registrar.Features
-	Log      logr.Logger
-}
-
-func (do *driverOne) Compatible(ctx context.Context) bool {
-	do.Log.V(0).Info("compatible method")
-	do.Log.V(0).Info("debugging", "driverOne", do)
-	return true
-}
-
-func (do *driverOne) GetPower(ctx context.Context) (string, error) {
-	do.Log.V(0).Info("debugging", "driverOne", do)
-	return "on", nil
+	metadata string
+	features registrar.Features
 }
 
 type driverTwo struct {
 	name     string
 	protocol string
-	user     string
-	pass     string
-	host     string
-	port     string
-	Features registrar.Features
-	Log      logr.Logger
+	metadata string
+	features registrar.Features
 }
 
-func (do *driverTwo) Compatiblea(ctx context.Context) bool {
-	do.Log.V(0).Info("compatible method")
-	do.Log.V(0).Info("debugging", "driverTwo", do)
+func (d *driverOne) Compatible(ctx context.Context) bool {
+	// do a compatibility check for driver one
 	return true
 }
 
-func (do *driverTwo) GetPower(ctx context.Context) (string, error) {
-	do.Log.V(0).Info("debugging", "driverTwo", do)
-	return "on", nil
+func (d *driverOne) Thing() bool {
+	return true
 }
 
-// PowerGetter interface
-type PowerGetter interface {
-	GetPower(ctx context.Context) (string, error)
+func (d *driverOne) Name() string {
+	return d.name
 }
 
-func defaultLogger() logr.Logger {
-	config := zap.Config{
-		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
-		Encoding:         "json",
-		EncoderConfig:    zap.NewProductionEncoderConfig(),
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
-	}
+func (d *driverTwo) Compatible(ctx context.Context) bool {
+	// do a compatibility check for driver two
+	return true
+}
 
-	logger, err := config.Build()
-	if err != nil {
-		panic(err)
-	}
+func (d *driverTwo) Thing() bool {
+	return true
+}
 
-	return zapr.NewLogger(logger)
+func (d *driverTwo) Name() string {
+	return d.name
+}
+
+// CoolThinger does the cool thing you want it to do
+type CoolThinger interface {
+	Name() string
+	Thing() bool
 }
 
 func main() {
-	log := defaultLogger()
-	reg := registrar.NewRegistry(registrar.WithLogger(log))
-	do := &driverOne{
-		name:     "driverOne",
-		protocol: "ipmi",
-		Features: registrar.Features{"power"},
-		user:     "admin",
-		pass:     "admin",
-		host:     "localhost",
-		port:     "623",
-		Log:      log,
-	}
-	reg.Register(do.name, do.protocol, do.Features, nil, do)
-	d2 := &driverTwo{
-		name:     "driverTwo",
-		protocol: "ipmi",
-		Features: registrar.Features{"power"},
-		user:     "admin",
-		pass:     "admin",
-		host:     "localhost",
-		port:     "623",
-		Log:      log,
-	}
-	reg.Register(d2.name, d2.protocol, d2.Features, nil, d2)
-	log.V(0).Info("debugging", "driver interface", reg.Drivers[0].DriverInterface)
-	iface := reg.Drivers[0].DriverInterface
+	// create a registry
+	reg := registrar.NewRegistry()
+
+	// registry drivers
+	one := &driverOne{name: "driverOne", protocol: "tcp", metadata: "this is driver one", features: registrar.Features{registrar.Feature("always double checking")}}
+	two := &driverTwo{name: "driverTwo", protocol: "udp", metadata: "this is driver two", features: registrar.Features{registrar.Feature("set and forget")}}
+	reg.Register(one.name, one.protocol, one.features, one.metadata, one)
+	reg.Register(two.name, two.protocol, two.features, two.metadata, two)
+
+	// do some filtering
 	ctx := context.Background()
-	reg.FilterForCompatible(ctx)
-	log.V(0).Info("debugging", "compatible", reg.Drivers[0].DriverInterface.(registrar.Verifier).Compatible(context.Background()))
-	state, err := iface.(PowerGetter).GetPower(ctx)
-	log.V(0).Info("debugging", "state", state, "err", err)
-	log.V(0).Info("debugging", "driver[0]", reg.Drivers[0])
+	reg.Drivers = reg.Using("tcp")
+	reg.Drivers = reg.FilterForCompatible(ctx)
+
+	// get the interfaces and run CoolThinger.Thing()
+	var didTheThing bool
+doTheThing:
+	for _, elem := range reg.GetDriverInterfaces() {
+		switch d := elem.(type) {
+		case CoolThinger:
+			didTheThing = d.Thing()
+			fmt.Printf("cool thing executed by %v\n", d.Name())
+			break doTheThing
+		default:
+			didTheThing = false
+		}
+	}
+	fmt.Printf("did we do the thing? %v\n", didTheThing)
 }
