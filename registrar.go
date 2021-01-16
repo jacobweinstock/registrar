@@ -92,23 +92,36 @@ func (r Registry) GetDriverInterfaces() []interface{} {
 // interface. registered drivers must implement the Verifier interface for this.
 func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	var wg sync.WaitGroup
-	result := make(Drivers, 0)
-	for _, elem := range r.Drivers {
+	var mutex = &sync.Mutex{}
+	state := make(map[int]*Driver)
+
+	for index, elem := range r.Drivers {
+		index := index
 		wg.Add(1)
 		go func(isCompat interface{}, reg *Driver, wg *sync.WaitGroup) {
 			switch c := isCompat.(type) {
 			case Verifier:
 				if c.Compatible(ctx) {
-					result = append(result, reg)
+					mutex.Lock()
+					state[index] = reg
+					mutex.Unlock()
 				}
 			default:
-				result = append(result, reg)
+				mutex.Lock()
+				state[index] = reg
+				mutex.Unlock()
 				r.Logger.V(1).Info(fmt.Sprintf("could not check for compatibility. not a Verifier implementation: %T", c))
 			}
 			wg.Done()
 		}(elem.DriverInterface, elem, &wg)
 	}
 	wg.Wait()
+
+	result := make(Drivers, 0)
+	for i := 0; i < len(state); i++ {
+		result = append(result, state[i])
+	}
+
 	return result
 }
 
