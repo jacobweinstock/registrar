@@ -217,6 +217,31 @@ func (r Registry) PreferProtocol(protocols ...string) Drivers {
 	return final
 }
 
+// PreferDriver will reorder the registry by moving preferred drivers to the start
+func (r Registry) PreferDriver(drivers ...string) Drivers {
+	var final Drivers
+	var leftOver Drivers
+	tracking := make(map[int]Drivers)
+	drivers = deduplicate(drivers)
+	for _, registry := range r.Drivers {
+		var movedToTracking bool
+		for index, pName := range drivers {
+			if strings.EqualFold(registry.Name, pName) {
+				tracking[index] = append(tracking[index], registry)
+				movedToTracking = true
+			}
+		}
+		if !movedToTracking {
+			leftOver = append(leftOver, registry)
+		}
+	}
+	for x := 0; x <= len(tracking); x++ {
+		final = append(final, tracking[x]...)
+	}
+	final = append(final, leftOver...)
+	return final
+}
+
 func defaultLogger() logr.Logger {
 	config := zap.Config{
 		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),

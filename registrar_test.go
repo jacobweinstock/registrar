@@ -303,8 +303,8 @@ func TestForFn(t *testing.T) {
 	}
 }
 
-func TestPrefer(t *testing.T) {
-	unorderedCollection := NewRegistry(WithDrivers(Drivers{
+func TestPreferProtocol(t *testing.T) {
+	collection1 := NewRegistry(WithDrivers(Drivers{
 		{
 			Name:     "dell",
 			Protocol: "web",
@@ -321,14 +321,13 @@ func TestPrefer(t *testing.T) {
 			Features: []Feature{FeatureUserCreate},
 		},
 	}))
-	testCases := []struct {
-		name         string
-		addARegistry bool
-		protocol     []string
-		want         *Registry
+	testCases := map[string]struct {
+		baseCollection *Registry
+		protocol       []string
+		want           *Registry
 	}{
-		{name: "empty collection", want: unorderedCollection},
-		{name: "collection", protocol: []string{"web"}, addARegistry: true, want: NewRegistry(WithDrivers(Drivers{
+		"empty collection": {want: collection1, baseCollection: collection1},
+		"collection": {protocol: []string{"web"}, baseCollection: collection1, want: NewRegistry(WithDrivers(Drivers{
 			{
 				Name:     "dell",
 				Protocol: "web",
@@ -345,7 +344,7 @@ func TestPrefer(t *testing.T) {
 				Features: []Feature{FeatureUserCreate},
 			},
 		}))},
-		{name: "collection with duplicate protocols", protocol: []string{"web", "web"}, addARegistry: true, want: NewRegistry(WithDrivers(Drivers{
+		"collection with duplicate protocols": {protocol: []string{"web", "web"}, baseCollection: collection1, want: NewRegistry(WithDrivers(Drivers{
 			{
 				Name:     "dell",
 				Protocol: "web",
@@ -363,11 +362,105 @@ func TestPrefer(t *testing.T) {
 			},
 		}))},
 	}
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			registries := unorderedCollection
-			result := registries.PreferProtocol(tc.protocol...)
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			result := tc.baseCollection.PreferProtocol(tc.protocol...)
+			if diff := cmp.Diff(tc.want.Drivers, result); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}
+
+func TestPreferDriver(t *testing.T) {
+	collection1 := NewRegistry(WithDrivers(Drivers{
+		{
+			Name:     "dell",
+			Protocol: "web",
+			Features: []Feature{FeatureUserCreate},
+		},
+		{
+			Name:     "ipmitool",
+			Protocol: "ipmi",
+			Features: []Feature{FeatureUserCreate},
+		},
+		{
+			Name:     "smc",
+			Protocol: "web",
+			Features: []Feature{FeatureUserCreate},
+		},
+	}))
+	collection2 := NewRegistry(WithDrivers(Drivers{
+		{
+			Name:     "dell",
+			Protocol: "web",
+			Features: []Feature{FeatureUserCreate},
+		},
+		{
+			Name:     "ipmitool",
+			Protocol: "ipmi",
+			Features: []Feature{FeatureUserCreate},
+		},
+		{
+			Name:     "smc",
+			Protocol: "redfish",
+			Features: []Feature{FeatureUserCreate},
+		},
+		{
+			Name:     "smc",
+			Protocol: "web",
+			Features: []Feature{FeatureUserCreate},
+		},
+	}))
+	testCases := map[string]struct {
+		baseCollection *Registry
+		driver         []string
+		want           *Registry
+	}{
+		"empty collection": {want: collection1, baseCollection: collection1},
+		"normal collection": {driver: []string{"smc"}, baseCollection: collection1, want: NewRegistry(WithDrivers(Drivers{
+			{
+				Name:     "smc",
+				Protocol: "web",
+				Features: []Feature{FeatureUserCreate},
+			},
+			{
+				Name:     "dell",
+				Protocol: "web",
+				Features: []Feature{FeatureUserCreate},
+			},
+			{
+				Name:     "ipmitool",
+				Protocol: "ipmi",
+				Features: []Feature{FeatureUserCreate},
+			},
+		}))},
+		"collection with duplicate drivers": {driver: []string{"smc", "smc"}, baseCollection: collection2, want: NewRegistry(WithDrivers(Drivers{
+			{
+				Name:     "smc",
+				Protocol: "redfish",
+				Features: []Feature{FeatureUserCreate},
+			},
+			{
+				Name:     "smc",
+				Protocol: "web",
+				Features: []Feature{FeatureUserCreate},
+			},
+			{
+				Name:     "dell",
+				Protocol: "web",
+				Features: []Feature{FeatureUserCreate},
+			},
+			{
+				Name:     "ipmitool",
+				Protocol: "ipmi",
+				Features: []Feature{FeatureUserCreate},
+			},
+		}))},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			result := tc.baseCollection.PreferDriver(tc.driver...)
 			if diff := cmp.Diff(tc.want.Drivers, result); diff != "" {
 				t.Fatal(diff)
 			}
