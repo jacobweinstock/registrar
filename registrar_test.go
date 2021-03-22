@@ -39,7 +39,7 @@ func TestInclude(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result := tc.features.include(tc.includes...)
-			diff := cmp.Diff(tc.want, result)
+			diff := cmp.Diff(result, tc.want)
 			if diff != "" {
 				t.Fatal(diff)
 			}
@@ -89,7 +89,7 @@ func TestSupports(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result := tc.collection.Supports(tc.supports...)
-			diff := cmp.Diff(tc.want.Drivers, result)
+			diff := cmp.Diff(result, tc.want.Drivers)
 			if diff != "" {
 				t.Fatal(diff)
 			}
@@ -136,7 +136,7 @@ func TestUsing(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result := tc.collection.Using(tc.proto)
-			diff := cmp.Diff(tc.want.Drivers, result)
+			diff := cmp.Diff(result, tc.want.Drivers)
 			if diff != "" {
 				t.Fatal(diff)
 			}
@@ -183,7 +183,7 @@ func TestFor(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result := tc.collection.For(tc.provider)
-			diff := cmp.Diff(tc.want.Drivers, result)
+			diff := cmp.Diff(result, tc.want.Drivers)
 			if diff != "" {
 				t.Fatal(diff)
 			}
@@ -210,7 +210,7 @@ func TestAll(t *testing.T) {
 			if tc.addARegistry {
 				rg.Register("dell", "web", []Feature{FeaturePowerSet}, nil, nil)
 			}
-			if diff := cmp.Diff(tc.want, rg, cmpopts.IgnoreFields(Registry{}, "Logger")); diff != "" {
+			if diff := cmp.Diff(rg, tc.want, cmpopts.IgnoreFields(Registry{}, "Logger")); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -238,7 +238,7 @@ func TestSupportFn(t *testing.T) {
 				rg.Register("dell", "web", []Feature{FeatureUserCreate}, nil, nil)
 			}
 			result := rg.Supports(tc.features...)
-			if diff := cmp.Diff(tc.want.Drivers, result); diff != "" {
+			if diff := cmp.Diff(result, tc.want.Drivers); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -267,7 +267,7 @@ func TestUsingFn(t *testing.T) {
 				rg.Register("dell", "web", []Feature{FeatureUserCreate}, nil, nil)
 			}
 			result := rg.Using(tc.proto)
-			if diff := cmp.Diff(tc.want.Drivers, result); diff != "" {
+			if diff := cmp.Diff(result, tc.want.Drivers); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -296,7 +296,7 @@ func TestForFn(t *testing.T) {
 				rg.Register("dell", "web", []Feature{FeatureUserCreate}, nil, nil)
 			}
 			result := rg.For(tc.provider)
-			if diff := cmp.Diff(tc.want.Drivers, result); diff != "" {
+			if diff := cmp.Diff(result, tc.want.Drivers); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -365,7 +365,7 @@ func TestPreferProtocol(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			result := tc.baseCollection.PreferProtocol(tc.protocol...)
-			if diff := cmp.Diff(tc.want.Drivers, result); diff != "" {
+			if diff := cmp.Diff(result, tc.want.Drivers); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -461,7 +461,7 @@ func TestPreferDriver(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			result := tc.baseCollection.PreferDriver(tc.driver...)
-			if diff := cmp.Diff(tc.want.Drivers, result); diff != "" {
+			if diff := cmp.Diff(result, tc.want.Drivers); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -473,7 +473,7 @@ func TestGetDriverInterfaces(t *testing.T) {
 	do := &driverOne{}
 	rg.Register(do.name, do.protocol, do.features, nil, do)
 	driverInterfaces := rg.GetDriverInterfaces()
-	if diff := cmp.Diff([]interface{}{do}, driverInterfaces, cmp.AllowUnexported(driverOne{})); diff != "" {
+	if diff := cmp.Diff(driverInterfaces, []interface{}{do}, cmp.AllowUnexported(driverOne{})); diff != "" {
 		t.Fatal(diff)
 	}
 }
@@ -497,7 +497,7 @@ func TestFilterForCompatible(t *testing.T) {
 			rg.Register(tc.driver.name, tc.driver.protocol, tc.driver.features, nil, tc.driver)
 			rg.Drivers = rg.FilterForCompatible(context.Background())
 			driverInterfaces := rg.GetDriverInterfaces()
-			if diff := cmp.Diff(tc.want, driverInterfaces, cmp.AllowUnexported(driverOne{})); diff != "" {
+			if diff := cmp.Diff(driverInterfaces, tc.want, cmp.AllowUnexported(driverOne{})); diff != "" {
 				t.Fatal(diff)
 			}
 		})
