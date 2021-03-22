@@ -57,8 +57,7 @@ func WithDrivers(drivers Drivers) Option {
 // NewRegistry returns a new Driver registry
 func NewRegistry(opts ...Option) *Registry {
 	var defaultRegistry = &Registry{
-		Logger:  defaultLogger(),
-		Drivers: make(Drivers, 0),
+		Logger: defaultLogger(),
 	}
 	for _, opt := range opts {
 		opt(defaultRegistry)
@@ -80,9 +79,11 @@ func (r *Registry) Register(name, protocol string, features Features, metadata i
 
 // GetDriverInterfaces returns a slice of just the generic driver interfaces
 func (r Registry) GetDriverInterfaces() []interface{} {
-	results := make([]interface{}, 0)
+	var results []interface{}
 	for _, elem := range r.Drivers {
-		results = append(results, elem.DriverInterface)
+		if elem != nil {
+			results = append(results, elem.DriverInterface)
+		}
 	}
 	return results
 }
@@ -117,7 +118,7 @@ func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	}
 	wg.Wait()
 
-	result := make(Drivers, 0)
+	var result Drivers
 	for i := 0; i < len(state); i++ {
 		result = append(result, state[i])
 	}
@@ -144,7 +145,7 @@ func (f Features) include(features ...Feature) bool {
 
 // Supports does the actual work of filtering for specific features
 func (r Registry) Supports(features ...Feature) Drivers {
-	supportedRegistries := make(Drivers, 0)
+	var supportedRegistries Drivers
 	for _, reg := range r.Drivers {
 		if reg.Features.include(features...) {
 			supportedRegistries = append(supportedRegistries, reg)
@@ -155,7 +156,7 @@ func (r Registry) Supports(features ...Feature) Drivers {
 
 // Using does the actual work of filtering for a specific protocol type
 func (r Registry) Using(proto string) Drivers {
-	supportedRegistries := make(Drivers, 0)
+	var supportedRegistries Drivers
 	for _, reg := range r.Drivers {
 		if reg.Protocol == proto {
 			supportedRegistries = append(supportedRegistries, reg)
@@ -166,7 +167,7 @@ func (r Registry) Using(proto string) Drivers {
 
 // For does the actual work of filtering for a specific driver name
 func (r Registry) For(driver string) Drivers {
-	supportedRegistries := make(Drivers, 0)
+	var supportedRegistries Drivers
 	for _, reg := range r.Drivers {
 		if reg.Name == driver {
 			supportedRegistries = append(supportedRegistries, reg)

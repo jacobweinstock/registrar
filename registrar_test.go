@@ -65,7 +65,7 @@ func TestSupports(t *testing.T) {
 			supports: Features{
 				FeatureUserCreate,
 			},
-			want: NewRegistry(WithDrivers(Drivers{})),
+			want: NewRegistry(),
 		},
 		{
 			name: "one registry supports UserCreate",
@@ -113,7 +113,7 @@ func TestUsing(t *testing.T) {
 					Features: []Feature{FeaturePowerSet},
 				}})),
 			proto: "web",
-			want:  NewRegistry(WithDrivers(Drivers{})),
+			want:  NewRegistry(),
 		},
 		{
 			name: "proto is found",
@@ -160,7 +160,7 @@ func TestFor(t *testing.T) {
 					Features: []Feature{FeaturePowerSet},
 				}})),
 			provider: "dell",
-			want:     NewRegistry(WithDrivers(Drivers{})),
+			want:     NewRegistry(),
 		},
 		{
 			name: "proto is found",
@@ -197,7 +197,7 @@ func TestAll(t *testing.T) {
 		addARegistry bool
 		want         *Registry
 	}{
-		{name: "empty collection", want: NewRegistry(WithDrivers(Drivers{}))},
+		{name: "empty collection", want: NewRegistry()},
 		{name: "single collection", addARegistry: true, want: NewRegistry(WithDrivers(Drivers{
 			{Name: "dell", Protocol: "web", Features: []Feature{FeaturePowerSet}},
 		})),
@@ -224,7 +224,7 @@ func TestSupportFn(t *testing.T) {
 		features     []Feature
 		want         *Registry
 	}{
-		{name: "empty collection", want: NewRegistry(WithDrivers(Drivers{}))},
+		{name: "empty collection", want: NewRegistry()},
 		{name: "single collection", features: []Feature{FeatureUserCreate}, addARegistry: true, want: NewRegistry(WithDrivers(Drivers{
 			{Name: "dell", Protocol: "web", Features: []Feature{FeatureUserCreate}},
 		})),
@@ -252,7 +252,7 @@ func TestUsingFn(t *testing.T) {
 		proto        string
 		want         *Registry
 	}{
-		{name: "empty collection", want: NewRegistry(WithDrivers(Drivers{}))},
+		{name: "empty collection", want: NewRegistry()},
 		{name: "single collection", proto: "web", addARegistry: true, want: NewRegistry(WithDrivers(Drivers{{
 			Name:     "dell",
 			Protocol: "web",
@@ -281,7 +281,7 @@ func TestForFn(t *testing.T) {
 		provider     string
 		want         *Registry
 	}{
-		{name: "empty collection", want: NewRegistry(WithDrivers(Drivers{}))},
+		{name: "empty collection", want: NewRegistry()},
 		{name: "single collection", provider: "dell", addARegistry: true, want: NewRegistry(WithDrivers(Drivers{{
 			Name:     "dell",
 			Protocol: "web",
@@ -473,7 +473,7 @@ func TestGetDriverInterfaces(t *testing.T) {
 	do := &driverOne{}
 	rg.Register(do.name, do.protocol, do.features, nil, do)
 	driverInterfaces := rg.GetDriverInterfaces()
-	if diff := cmp.Diff(driverInterfaces, []interface{}{do}, cmp.AllowUnexported(driverOne{})); diff != "" {
+	if diff := cmp.Diff([]interface{}{do}, driverInterfaces, cmp.AllowUnexported(driverOne{})); diff != "" {
 		t.Fatal(diff)
 	}
 }
@@ -487,7 +487,7 @@ func TestFilterForCompatible(t *testing.T) {
 		want   []interface{}
 	}{
 		{name: "is compatible", driver: compatible, want: []interface{}{compatible}},
-		{name: "is NOT compatible", driver: notCompatible, want: []interface{}{}},
+		{name: "is NOT compatible", driver: notCompatible},
 	}
 
 	for _, tc := range testCases {
@@ -497,7 +497,7 @@ func TestFilterForCompatible(t *testing.T) {
 			rg.Register(tc.driver.name, tc.driver.protocol, tc.driver.features, nil, tc.driver)
 			rg.Drivers = rg.FilterForCompatible(context.Background())
 			driverInterfaces := rg.GetDriverInterfaces()
-			if diff := cmp.Diff(driverInterfaces, tc.want, cmp.AllowUnexported(driverOne{})); diff != "" {
+			if diff := cmp.Diff(tc.want, driverInterfaces, cmp.AllowUnexported(driverOne{})); diff != "" {
 				t.Fatal(diff)
 			}
 		})
