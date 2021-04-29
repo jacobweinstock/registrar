@@ -7,8 +7,6 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"github.com/go-logr/zapr"
-	"go.uber.org/zap"
 )
 
 // Feature represents a single feature a driver supports
@@ -57,7 +55,7 @@ func WithDrivers(drivers Drivers) Option {
 // NewRegistry returns a new Driver registry
 func NewRegistry(opts ...Option) *Registry {
 	var defaultRegistry = &Registry{
-		Logger: defaultLogger(),
+		Logger: logr.Discard(),
 	}
 	for _, opt := range opts {
 		opt(defaultRegistry)
@@ -243,21 +241,4 @@ func (r Registry) PreferDriver(drivers ...string) Drivers {
 	}
 	final = append(final, leftOver...)
 	return final
-}
-
-func defaultLogger() logr.Logger {
-	config := zap.Config{
-		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
-		Encoding:         "json",
-		EncoderConfig:    zap.NewProductionEncoderConfig(),
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
-	}
-
-	logger, err := config.Build()
-	if err != nil {
-		panic(err)
-	}
-
-	return zapr.NewLogger(logger)
 }

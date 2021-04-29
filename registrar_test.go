@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
@@ -493,7 +494,7 @@ func TestFilterForCompatible(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			rg := NewRegistry(WithLogger(defaultLogger()))
+			rg := NewRegistry(WithLogger(logr.Discard()))
 			rg.Register(tc.driver.name, tc.driver.protocol, tc.driver.features, nil, tc.driver)
 			rg.Drivers = rg.FilterForCompatible(context.Background())
 			driverInterfaces := rg.GetDriverInterfaces()
