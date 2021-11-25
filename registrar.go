@@ -1,3 +1,4 @@
+// Package registrar implements a variant of the registration pattern.
 package registrar
 
 import (
