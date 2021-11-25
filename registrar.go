@@ -9,31 +9,31 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// Feature represents a single feature a driver supports
+// Feature represents a single feature a driver supports.
 type Feature string
 
-// Features holds the features a driver supports
+// Features holds the features a driver supports.
 type Features []Feature
 
-// Drivers holds a slice of Driver types
+// Drivers holds a slice of Driver types.
 type Drivers []*Driver
 
-// Option for setting optional Registry values
+// Option for setting optional Registry values.
 type Option func(*Registry)
 
 // Verifier allows implementations to define a method for
-// determining whether a driver is compatible for use
+// determining whether a driver is compatible for use.
 type Verifier interface {
 	Compatible(context.Context) bool
 }
 
-// Registry holds the registered drivers
+// Registry holds the registered drivers.
 type Registry struct {
 	Logger  logr.Logger
 	Drivers Drivers
 }
 
-// Driver holds the info about a driver
+// Driver holds the info about a driver.
 type Driver struct {
 	Name            string
 	Protocol        string
@@ -42,19 +42,19 @@ type Driver struct {
 	DriverInterface interface{}
 }
 
-// WithLogger sets the logger
+// WithLogger sets the logger.
 func WithLogger(logger logr.Logger) Option {
 	return func(args *Registry) { args.Logger = logger }
 }
 
-// WithDrivers sets the drivers
+// WithDrivers sets the drivers.
 func WithDrivers(drivers Drivers) Option {
 	return func(args *Registry) { args.Drivers = drivers }
 }
 
-// NewRegistry returns a new Driver registry
+// NewRegistry returns a new Driver registry.
 func NewRegistry(opts ...Option) *Registry {
-	var defaultRegistry = &Registry{
+	defaultRegistry := &Registry{
 		Logger: logr.Discard(),
 	}
 	for _, opt := range opts {
@@ -64,7 +64,7 @@ func NewRegistry(opts ...Option) *Registry {
 	return defaultRegistry
 }
 
-// Register will add a driver a Driver registry
+// Register will add a driver a Driver registry.
 func (r *Registry) Register(name, protocol string, features Features, metadata interface{}, driverInterface interface{}) {
 	r.Drivers = append(r.Drivers, &Driver{
 		Name:            name,
@@ -75,7 +75,7 @@ func (r *Registry) Register(name, protocol string, features Features, metadata i
 	})
 }
 
-// GetDriverInterfaces returns a slice of just the generic driver interfaces
+// GetDriverInterfaces returns a slice of just the generic driver interfaces.
 func (r Registry) GetDriverInterfaces() []interface{} {
 	var results []interface{}
 	for _, elem := range r.Drivers {
@@ -91,7 +91,7 @@ func (r Registry) GetDriverInterfaces() []interface{} {
 // interface. registered drivers must implement the Verifier interface for this.
 func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	var wg sync.WaitGroup
-	var mutex = &sync.Mutex{}
+	mutex := &sync.Mutex{}
 	state := make(map[int]*Driver)
 
 	for index, elem := range r.Drivers {
@@ -126,7 +126,7 @@ func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	return result
 }
 
-// include does the actual work of filtering for specific features
+// include does the actual work of filtering for specific features.
 func (f Features) include(features ...Feature) bool {
 	if len(features) > len(f) {
 		return false
@@ -143,7 +143,7 @@ func (f Features) include(features ...Feature) bool {
 	return true
 }
 
-// Supports does the actual work of filtering for specific features
+// Supports does the actual work of filtering for specific features.
 func (r Registry) Supports(features ...Feature) Drivers {
 	var supportedRegistries Drivers
 	for _, reg := range r.Drivers {
@@ -154,7 +154,7 @@ func (r Registry) Supports(features ...Feature) Drivers {
 	return supportedRegistries
 }
 
-// Using does the actual work of filtering for a specific protocol type
+// Using does the actual work of filtering for a specific protocol type.
 func (r Registry) Using(proto string) Drivers {
 	var supportedRegistries Drivers
 	for _, reg := range r.Drivers {
@@ -165,7 +165,7 @@ func (r Registry) Using(proto string) Drivers {
 	return supportedRegistries
 }
 
-// For does the actual work of filtering for a specific driver name
+// For does the actual work of filtering for a specific driver name.
 func (r Registry) For(driver string) Drivers {
 	var supportedRegistries Drivers
 	for _, reg := range r.Drivers {
@@ -193,7 +193,7 @@ func deduplicate(s []string) []string {
 	return result
 }
 
-// PreferProtocol does the actual work of moving preferred protocols to the start of the driver registry
+// PreferProtocol does the actual work of moving preferred protocols to the start of the driver registry.
 func (r Registry) PreferProtocol(protocols ...string) Drivers {
 	var final Drivers
 	var leftOver Drivers
@@ -218,7 +218,7 @@ func (r Registry) PreferProtocol(protocols ...string) Drivers {
 	return final
 }
 
-// PreferDriver will reorder the registry by moving preferred drivers to the start
+// PreferDriver will reorder the registry by moving preferred drivers to the start.
 func (r Registry) PreferDriver(drivers ...string) Drivers {
 	var final Drivers
 	var leftOver Drivers

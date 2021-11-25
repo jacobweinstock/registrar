@@ -21,7 +21,7 @@ type driverOne struct {
 	isCompatible bool
 }
 
-func (do *driverOne) Compatible(ctx context.Context) bool {
+func (do *driverOne) Compatible(_ context.Context) bool {
 	return do.isCompatible
 }
 
@@ -62,7 +62,8 @@ func TestSupports(t *testing.T) {
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeaturePowerSet},
-				}})),
+				},
+			})),
 			supports: Features{
 				FeatureUserCreate,
 			},
@@ -75,7 +76,8 @@ func TestSupports(t *testing.T) {
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeatureUserCreate},
-				}})),
+				},
+			})),
 			supports: Features{
 				FeatureUserCreate,
 			},
@@ -112,7 +114,8 @@ func TestUsing(t *testing.T) {
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeaturePowerSet},
-				}})),
+				},
+			})),
 			proto: "web",
 			want:  NewRegistry(),
 		},
@@ -123,14 +126,16 @@ func TestUsing(t *testing.T) {
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeaturePowerSet},
-				}})),
+				},
+			})),
 			proto: "ipmi",
 			want: NewRegistry(WithDrivers(Drivers{
 				{
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeaturePowerSet},
-				}})),
+				},
+			})),
 		},
 	}
 	for _, tc := range testCases {
@@ -159,7 +164,8 @@ func TestFor(t *testing.T) {
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeaturePowerSet},
-				}})),
+				},
+			})),
 			provider: "dell",
 			want:     NewRegistry(),
 		},
@@ -170,14 +176,16 @@ func TestFor(t *testing.T) {
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeaturePowerSet},
-				}})),
+				},
+			})),
 			provider: "ipmitool",
 			want: NewRegistry(WithDrivers(Drivers{
 				{
 					Name:     "ipmitool",
 					Protocol: "ipmi",
 					Features: []Feature{FeaturePowerSet},
-				}})),
+				},
+			})),
 		},
 	}
 	for _, tc := range testCases {
@@ -199,9 +207,10 @@ func TestAll(t *testing.T) {
 		want         *Registry
 	}{
 		{name: "empty collection", want: NewRegistry()},
-		{name: "single collection", addARegistry: true, want: NewRegistry(WithDrivers(Drivers{
-			{Name: "dell", Protocol: "web", Features: []Feature{FeaturePowerSet}},
-		})),
+		{
+			name: "single collection", addARegistry: true, want: NewRegistry(WithDrivers(Drivers{
+				{Name: "dell", Protocol: "web", Features: []Feature{FeaturePowerSet}},
+			})),
 		},
 	}
 	for _, tc := range testCases {
@@ -226,9 +235,10 @@ func TestSupportFn(t *testing.T) {
 		want         *Registry
 	}{
 		{name: "empty collection", want: NewRegistry()},
-		{name: "single collection", features: []Feature{FeatureUserCreate}, addARegistry: true, want: NewRegistry(WithDrivers(Drivers{
-			{Name: "dell", Protocol: "web", Features: []Feature{FeatureUserCreate}},
-		})),
+		{
+			name: "single collection", features: []Feature{FeatureUserCreate}, addARegistry: true, want: NewRegistry(WithDrivers(Drivers{
+				{Name: "dell", Protocol: "web", Features: []Feature{FeatureUserCreate}},
+			})),
 		},
 	}
 	for _, tc := range testCases {
@@ -496,6 +506,31 @@ func TestFilterForCompatible(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rg := NewRegistry(WithLogger(logr.Discard()))
 			rg.Register(tc.driver.name, tc.driver.protocol, tc.driver.features, nil, tc.driver)
+			rg.Drivers = rg.FilterForCompatible(context.Background())
+			driverInterfaces := rg.GetDriverInterfaces()
+			if diff := cmp.Diff(driverInterfaces, tc.want, cmp.AllowUnexported(driverOne{})); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}
+
+func TestFilterForCompatibleNotAVerifier(t *testing.T) {
+	type v struct{}
+	notVerifier := &v{}
+	testCases := []struct {
+		name   string
+		driver *v
+		want   []interface{}
+	}{
+		{name: "not a verifier interface", driver: notVerifier, want: []interface{}{notVerifier}},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			rg := NewRegistry(WithLogger(logr.Discard()))
+			rg.Register("", "", nil, nil, tc.driver)
 			rg.Drivers = rg.FilterForCompatible(context.Background())
 			driverInterfaces := rg.GetDriverInterfaces()
 			if diff := cmp.Diff(driverInterfaces, tc.want, cmp.AllowUnexported(driverOne{})); diff != "" {
