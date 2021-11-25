@@ -19,3 +19,7 @@ jobs:
         run: make lint
       - name: Test
         run: make test
+      - name: generate coverage report
+        run: make cover
+      - name: Codecov
+        uses: codecov/codecov-action@v2.1.0

@@ -11,9 +11,8 @@ test: ## Run unit tests
 
 .PHONY: cover
 cover: ## Run unit tests with coverage report
-	go test -coverprofile=cover.out ./...
-	go tool cover -func=cover.out
-	rm -rf cover.out
+	go test -coverprofile=coverage.out ./... || true
+	go tool cover -func=coverage.out
 
 .PHONY: goimports
 goimports: ## run goimports updating files in place

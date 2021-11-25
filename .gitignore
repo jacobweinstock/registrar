@@ -18,3 +18,5 @@
 *.code-workspace
 # added by lint-install
 out/
+
+coverage.out
