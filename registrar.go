@@ -118,7 +118,7 @@ func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	wg.Wait()
 
 	var result Drivers
-	for i := 0; i < len(state); i++ {
+	for i := 0; i <= len(state); i++ {
 		if state[i] != nil {
 			result = append(result, state[i])
 		}

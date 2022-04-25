@@ -515,6 +515,33 @@ func TestFilterForCompatible(t *testing.T) {
 	}
 }
 
+func TestFilterForCompatibleIncludesCompatible(t *testing.T) {
+	incompatible := &driverOne{name: "bar", protocol: "tcp", features: Features{}, isCompatible: false}
+	compatible := &driverOne{name: "foo", protocol: "tcp", features: Features{}, isCompatible: true}
+	testCases := []struct {
+		name     string
+		register []*driverOne
+		want     []interface{}
+	}{
+		{name: "includes compatible", register: []*driverOne{incompatible, compatible}, want: []interface{}{compatible}},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			rg := NewRegistry(WithLogger(logr.Discard()))
+			for _, driver := range tc.register {
+				rg.Register(driver.name, driver.protocol, driver.features, nil, driver)
+			}
+			rg.Drivers = rg.FilterForCompatible(context.Background())
+			driverInterfaces := rg.GetDriverInterfaces()
+			if diff := cmp.Diff(driverInterfaces, tc.want, cmp.AllowUnexported(driverOne{})); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}
+
 func TestFilterForCompatibleNotAVerifier(t *testing.T) {
 	type v struct{}
 	notVerifier := &v{}
