@@ -93,7 +93,7 @@ func (r Registry) GetDriverInterfaces() []interface{} {
 func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	var wg sync.WaitGroup
 	mutex := &sync.Mutex{}
-	state := make(map[int]*Driver)
+	state := make([]*Driver, len(r.Drivers))
 
 	for index, elem := range r.Drivers {
 		index := index
@@ -118,10 +118,12 @@ func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	wg.Wait()
 
 	var result Drivers
-	for i := 0; i <= len(state); i++ {
-		if state[i] != nil {
-			result = append(result, state[i])
+	for i := 0; i < len(state); i++ {
+		if state[i] == nil {
+			continue
 		}
+
+		result = append(result, state[i])
 	}
 
 	return result
