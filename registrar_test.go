@@ -492,20 +492,24 @@ func TestGetDriverInterfaces(t *testing.T) {
 func TestFilterForCompatible(t *testing.T) {
 	compatible := &driverOne{name: "driverOne", protocol: "tcp", features: Features{}, isCompatible: true}
 	notCompatible := &driverOne{name: "driverOne", protocol: "tcp", features: Features{}, isCompatible: false}
-	testCases := []struct {
-		name   string
-		driver *driverOne
-		want   []interface{}
+	testCases := map[string]struct {
+		driver      *driverOne
+		want        []interface{}
+		registryNil bool
 	}{
-		{name: "is compatible", driver: compatible, want: []interface{}{compatible}},
-		{name: "is NOT compatible", driver: notCompatible},
+		"is compatible":           {driver: compatible, want: []interface{}{compatible}},
+		"is NOT compatible":       {driver: notCompatible},
+		"nil not in return value": {driver: compatible, want: []interface{}{compatible}, registryNil: true},
 	}
 
-	for _, tc := range testCases {
+	for name, tc := range testCases {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(name, func(t *testing.T) {
 			rg := NewRegistry(WithLogger(logr.Discard()))
 			rg.Register(tc.driver.name, tc.driver.protocol, tc.driver.features, nil, tc.driver)
+			if tc.registryNil {
+				rg.Drivers = append(rg.Drivers, nil)
+			}
 			rg.Drivers = rg.FilterForCompatible(context.Background())
 			driverInterfaces := rg.GetDriverInterfaces()
 			if diff := cmp.Diff(driverInterfaces, tc.want, cmp.AllowUnexported(driverOne{})); diff != "" {
