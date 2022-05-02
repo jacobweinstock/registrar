@@ -96,6 +96,9 @@ func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	state := make(map[int]*Driver)
 
 	for index, elem := range r.Drivers {
+		if elem == nil {
+			continue
+		}
 		index := index
 		wg.Add(1)
 		go func(isCompat interface{}, reg *Driver, wg *sync.WaitGroup) {
