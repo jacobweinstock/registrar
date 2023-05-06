@@ -121,7 +121,7 @@ func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	return toSlice(order)
 }
 
-// toSlice converts a map to an order slice of Drivers
+// toSlice converts a map to an order slice of Drivers.
 func toSlice(d map[int]*Driver) []*Driver {
 	keys := make([]int, 0, len(d))
 	for k := range d {
