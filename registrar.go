@@ -3,7 +3,7 @@ package registrar
 
 import (
 	"context"
-	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -89,35 +89,50 @@ func (r Registry) GetDriverInterfaces() []interface{} {
 
 // FilterForCompatible updates the driver registry with only compatible implementations.
 // compatible implementations are determined by running the Compatible method of the Verifier
-// interface. registered drivers must implement the Verifier interface for this.
+// interface. registered drivers must implement the Verifier interface for this. Order is preserved.
 func (r Registry) FilterForCompatible(ctx context.Context) Drivers {
 	var wg sync.WaitGroup
 	mutex := &sync.Mutex{}
-	var result Drivers
+	order := make(map[int]*Driver)
 
-	for _, elem := range r.Drivers {
+	for idx, elem := range r.Drivers {
 		if elem == nil {
 			continue
 		}
 		wg.Add(1)
-		go func(isCompat interface{}, reg *Driver, wg *sync.WaitGroup) {
+		go func(isCompat interface{}, reg *Driver, wg *sync.WaitGroup, num int) {
 			switch c := isCompat.(type) {
 			case Verifier:
 				if c.Compatible(ctx) {
 					mutex.Lock()
-					result = append(result, reg)
+					order[num] = reg
 					mutex.Unlock()
 				}
 			default:
 				mutex.Lock()
-				result = append(result, reg)
+				order[num] = reg
 				mutex.Unlock()
-				r.Logger.V(1).Info(fmt.Sprintf("could not check for compatibility. not a Verifier implementation: %T", c))
 			}
 			wg.Done()
-		}(elem.DriverInterface, elem, &wg)
+		}(elem.DriverInterface, elem, &wg, idx)
 	}
 	wg.Wait()
+
+	return toSlice(order)
+}
+
+// toSlice converts a map to an order slice of Drivers
+func toSlice(d map[int]*Driver) []*Driver {
+	keys := make([]int, 0, len(d))
+	for k := range d {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	var result []*Driver
+	for _, key := range keys {
+		result = append(result, d[key])
+	}
 
 	return result
 }
